@@ -57,21 +57,33 @@ async function createBundleCss(stylesFolder, bundleCss) {
   }
 }
 
-//не завершено ↓
-async function copyDirectory(assetsFolder, directory) {
-  let items = await fsPromises.readdir(directory, {
+async function copyDirectory(srcFolder, destFolder) {
+  await fsPromises.mkdir(path.join(destFolder, path.basename(srcFolder)), {
+    recursive: true,
+  });
+
+  let items = await fsPromises.readdir(srcFolder, {
     withFileTypes: true,
   });
+
   for (let i = 0; i < items.length; i++) {
-    console.log(items[i].isDirectory());
     if (items[i].isDirectory()) {
-      await fsPromises.mkdir(path.join(directory, items[i].name));
-      copyDirectory(path.join(assetsFolder, directory, items[i].name));
+      copyDirectory(
+        path.join(srcFolder, items[i].name),
+        path.join(destFolder, path.basename(srcFolder)),
+      );
+    } else {
+      await fsPromises.copyFile(
+        path.join(srcFolder, items[i].name),
+        path.join(destFolder, path.basename(srcFolder), items[i].name),
+      );
     }
   }
 }
 
-createBundleFolder('project-dist');
-createBundleHtml(templateFile, componentsFolder, bundleFile);
-createBundleCss(stylesFolder, bundleCss);
-copyDirectory(assetsFolder, bundleFolder);
+fs.rm(bundleFolder, { recursive: true, force: true }, () => {
+  createBundleFolder('project-dist');
+  createBundleHtml(templateFile, componentsFolder, bundleFile);
+  createBundleCss(stylesFolder, bundleCss);
+  copyDirectory(assetsFolder, bundleFolder);
+});
